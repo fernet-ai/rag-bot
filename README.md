@@ -36,4 +36,4 @@ python run.py
 ```
 
 
-Made with ❤️ by Fernet AI
+Made with ❤️ by **Fernet AI**

@@ -1,0 +1,33 @@
+# Environment
+.env
+.venv/
+venv/
+env/
+ENV/
+*.env
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Log & DB
+*.log
+*.sqlite3
+*.db
+
+# Chroma vector store
+app/chroma/
+
+# LangChain cache
+.cache/
+langchain.db
+
+# Dataset / documenti locali
+app/data/
+
+# Upload temporanei
+*.tmp
+*.bak
+*.swp

@@ -16,7 +16,7 @@ async def rag_info(request: Request):
 
 @router.get("/ai/ask")
 async def get_answer(prompt: str, request: Request):
-    return {"answer": answer_query(request, prompt)}
+    return answer_query(request, prompt)
 
 
 @router.get("/ai/finddocuments")
