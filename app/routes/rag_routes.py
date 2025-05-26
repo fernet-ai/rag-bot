@@ -1,7 +1,9 @@
-from fastapi import APIRouter,Request, File, UploadFile
+from fastapi import APIRouter, HTTPException, Header,Request, File, UploadFile
 from app.services.rag_service import answer_query, get_relevant_docs, get_info
 
+
 router = APIRouter()
+
 
 
 @router.get("/")
@@ -27,3 +29,6 @@ async def get_docs(prompt: str, request: Request):
 @router.post("/uploadDocument/")
 async def upload_document(file: UploadFile = File(...)):
    return "file caricato"
+
+
+

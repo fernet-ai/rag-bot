@@ -5,8 +5,10 @@ from langchain_community.document_loaders import DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.prompts import ChatPromptTemplate
+from langchain.prompts import PromptTemplate
 from transformers import pipeline
+from google import genai
+from app.rag_core.llm_generator import LLMGenerator
 
 
 class RAGPipeline:
@@ -23,16 +25,17 @@ class RAGPipeline:
         self._load_and_split_documents()
 
         # Step 2: Inizializza un modello di embedding
-        self.embedding_model = HuggingFaceEmbeddings(
-            model_name="nickprock/sentence-bert-base-italian-uncased" # oppure "sentence-transformers/all-MiniLM-L6-v2"
-            
+        self.embedding_model =HuggingFaceEmbeddings(
+            #model_name="sentence-transformers/all-MiniLM-L6-v2"  # Piccolo, veloce e gratuito
+            model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
         )
 
         # Step 3: Genera embeddings dai chunks e costruisci il database vettoriale
         self._build_vector_store()
 
         # Step 4: Inizializza un LLM per la generazione di risposte
-        self.generator = pipeline("text2text-generation", model="google/flan-t5-base")
+        self.generator = LLMGenerator(model_type="gemini")
 
         print("Pipeline RAG pronta. ✅")
         self.status = "Ready"
@@ -45,8 +48,8 @@ class RAGPipeline:
         self.documents = loader.load()
 
         splitter = RecursiveCharacterTextSplitter(
-            chunk_size=400, 
-            chunk_overlap=100,
+            chunk_size=350,
+            chunk_overlap=80,
             length_function=len,
             add_start_index=True,
         )
@@ -71,50 +74,53 @@ class RAGPipeline:
         self.status = "Processing"
         
         # Step 1: Retrieve dei documenti più rilevanti dal db vettoriale rispetto alla query
-        results = self.db.similarity_search_with_score(query_text, k=k)
+        results = self.db.similarity_search(query_text, k=k)
 
         # Step 2: Filtra quelli sopra la soglia
-        filtered = [(doc, score) for doc, score in results if score >= threshold]
+        #filtered = [(doc, score) for doc, score in results if score >= threshold]
 
-        if not filtered:
-            return {
-                "answer": None,
-                "sources": [],
-                "message": "Nessun documento sufficientemente rilevante trovato.",
-                "status": "no_relevant_results"
-            }
+        # if not filtered:
+        #     return {
+        #         "answer": None,
+        #         "sources": [],
+        #         "message": "Nessun documento sufficientemente rilevante trovato.",
+        #         "status": "no_relevant_results"
+        #     }
         
         # Step 3: Prepara il prompt e costruisci il contesto da passare al prompt
         PROMPT_TEMPLATE = """
-        Answer the question based only on the following context:
+        Domanda: {query}
+        Rispondi alla domanda utilizzando **solo** il seguente contesto:
 
         {context}
 
         ---
 
-        Answer the question based on the above context: {query}
+        Risposta:
         """
 
         # Unisci i contenuti testuali dei documenti trovati
-        context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in filtered])
+        context_text = "\n\n---\n\n".join([doc.page_content for doc in results])
 
         # Crea il template e formatta il prompt
-        prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+        prompt_template = PromptTemplate.from_template(PROMPT_TEMPLATE)
         prompt = prompt_template.format(context=context_text, query=query_text)
 
+        print(f"Prompt generato: {prompt}")
+
         # Step 4: Genera la risposta con il LLM
-        response = self.generator(prompt, max_new_tokens=100, do_sample=True)
-        response_text = response[0]['generated_text'].strip()
+        response_text = self.generator.generate(prompt, max_new_tokens=100, do_sample=True).strip()
         print(f"Risposta generata: {response_text}")
 
         # Step 5: Prepara la risposta formattata con le fonti
-        sources = [doc.metadata.get("source", None) for doc, _ in filtered]
+        sources = [doc.metadata.get("source", None) for doc in results]
+
 
         return {
             "answer": response_text,
             "sources": sources,
             "query": query_text,
-            "relevant_documents": len(filtered),
+            "relevant_documents": len(results),
             "status": "ok"
         }
 
