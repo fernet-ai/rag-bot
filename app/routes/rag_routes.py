@@ -11,24 +11,24 @@ def read_root():
     return {"Hello": "World"}
 
 
-@router.get("/ai/info")
+@router.get("/info")
 async def rag_info(request: Request):
     return get_info(request)
 
 
-@router.get("/ai/ask")
+@router.get("/ask")
 async def get_answer(prompt: str, request: Request):
     return answer_query(request, prompt)
 
 
-@router.get("/ai/finddocuments")
+@router.get("/finddocuments")
 async def get_docs(prompt: str, request: Request):
     return get_relevant_docs(request, prompt)
 
 
-@router.post("/uploadDocument/")
-async def upload_document(file: UploadFile = File(...)):
-   return "file caricato"
+# @router.post("/uploadDocument/")
+# async def upload_document(file: UploadFile = File(...)):
+#    return "file caricato"
 
 
 

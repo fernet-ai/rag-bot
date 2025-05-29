@@ -17,5 +17,5 @@ async def startup():
     chat_ui.start()
 
 
-app.include_router(rag_routes.router)
-#app.include_router(bot_routes.router)
+app.include_router(rag_routes.router, prefix="/rag", tags=["RAG"])
+app.include_router(bot_routes.router, prefix="/bot", tags=["Bot"])
